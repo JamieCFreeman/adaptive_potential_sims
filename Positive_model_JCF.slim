@@ -1,0 +1,231 @@
+
+initialize() {
+	if (exists("slimgui"))  {   
+	defineConstant("n_var", 60);   
+	defineConstant("ratio_adaptive_rare", 0.5);   
+	defineConstant("adaptive_freq", 0.80);   
+	defineConstant("n_lines", 8);
+}
+	
+	// mutation rate :
+	initializeMutationRate(0);
+	
+	//Initializing the two mutations types : both positive, co-dominant, with a selection coefficient fowloing an exponential distribution with a mean of 0.001 
+	
+	// select the selection coefficient 
+	
+	initializeMutationType("m1", 0.5, "e", 0.01);
+	m1.mutationStackPolicy = "l";
+	m1.color = "red";
+	
+	initializeMutationType("m2", 0.5, "e", 0.01);
+	m2.mutationStackPolicy = "l";
+	m2.color = "green";
+	
+	// creating a new type of neutral mutation just to mark the Y chromosome and check that no individual as more than one y chromosome
+	
+	initializeMutationType("m3", 1.0, "f", 0); //Y
+	m3.mutationStackPolicy = "l";
+	m3.color = "blue";
+	
+	// genomic elements : now we need two genomic element type to model sex and non-sex chromosomes
+	initializeGenomicElementType("g1", c(m1, m2, m3), c(1,1,1)); // representing the X chromosome
+	initializeGenomicElementType("g2", c(m1, m2), c(1,1)); // representing the 2 and 3 chromosomes
+	
+	
+	//now we have to turn on sex
+	initializeSex("A");
+	
+	
+	// The 2 different types of chromosomes
+	initializeGenomicElement(g1, 0, 22500001); // Size of X
+	initializeGenomicElement(g2, 22500002, 119000003); // Size of 2 and 3 combined
+	
+	// Now we need to have two recombination map one for the male and one for the female: 
+	
+	// for the females
+	
+	lines = readFile("/Users/jamie/Box/Computing_resources/simulations_introgression_recombination-Simulation_scripts/directional_selection/Recomb_slim_F.txt");
+	rates = NULL;
+	ends = NULL;
+	for (line in lines)
+	{
+		components = strsplit(line, "\t");
+		ends = c(ends, asInteger(components[0]));
+		rates = c(rates, asFloat(components[1]));
+	}
+	ends = c(ends[1:(size(ends)-1)] - 2, 119000003); rates = rates * 1e-8; initializeRecombinationRate(rates, ends, sex="F");
+	
+	
+	// for the Males
+	
+	lines = readFile("/Users/jamie/Box/Computing_resources/simulations_introgression_recombination-Simulation_scripts/directional_selection/Recomb_slim_M.txt");
+	rates = NULL;
+	ends = NULL;
+	for (line in lines)
+	{
+		components = strsplit(line, "\t");
+		ends = c(ends, asInteger(components[0]));
+		rates = c(rates, asFloat(components[1]));
+	}
+	ends = c(ends[1:(size(ends)-1)] - 2, 119000003); rates = rates * 1e-8; initializeRecombinationRate(rates, ends, sex="M");
+	
+	
+	//initialize tree seq recording
+	initializeTreeSeq(simplificationInterval=10);
+
+}
+
+
+
+// Creating two new populations with only 10 individual in each
+
+1 late() {
+	
+	//creating the two populations with several individuals to have both males and females
+	sim.addSubpop("p1", 10, 0.5);
+	sim.addSubpop("p2", 10, 0.5);
+	
+	// How many mutations do we want? Moved these to constants
+	//n_var = 60;
+	//ratio_adaptive_rare = 0.5;
+	//adaptive_freq = 0.80;
+	n_adaptive_var = round(ratio_adaptive_rare * n_var) ;
+	n_rare_var = n_var - n_adaptive_var;
+	
+	// we first add the marker Y on males of both populations
+	Indp1 = p1.individuals;
+	Indp1[Indp1.sex == "M"].genome2.addNewMutation(m3, 0, 11250000);
+	Indp2 = p2.individuals;
+	Indp2[Indp2.sex == "M"].genome2.addNewMutation(m3, 0, 11250000);
+	
+
+	//Sex chr is 20% of genome, give 20%
+	n_sex_var = round((n_adaptive_var/2)*0.20);
+	n_aut_var = n_var - n_sex_var;
+	
+	// Sex mutations only going to the X chromosome
+	P1_X_chrs = c(Indp1[Indp1.sex == "F"].genomes, Indp1[Indp1.sex == "M"].genome1);
+	
+	P2_X_chrs = c(Indp2[Indp2.sex == "F"].genomes, Indp2[Indp2.sex == "M"].genome1);
+	
+	// For every mutant we sample the X chromosomes set so that frequency is
+	//		equal to adaptive_freq
+	for (i in 1:n_sex_var)
+	{
+		P1_X_mut = sample(P1_X_chrs, asInteger(length(P1_X_chrs) * adaptive_freq));
+		P1_X_mut.addNewDrawnMutation(m1, rdunif(1,0,22500000));
+	}
+	for (i in 1:n_sex_var)
+	{
+		P2_X_mut = sample(P2_X_chrs, asInteger(length(P2_X_chrs) * adaptive_freq));
+		P2_X_mut.addNewDrawnMutation(m1, rdunif(1,0,22500000));
+	}
+	
+	
+	
+	// adding a certain number of positively selected mutations in each population
+	for (i in 1:n_aut_var)
+	{
+		Indp1.genomes.addNewDrawnMutation(m1, rdunif(1,22500002,119000003));
+	}
+	for (i in 1:n_aut_var)
+	{
+		Indp2.genomes.addNewDrawnMutation(m1, rdunif(1,22500002,119000003));
+	}
+	
+		//setSeed(getSeed() + asInteger(sample(0:1000, 1)));
+
+
+}
+
+
+2 late() {
+	
+	// Declaring how many lines we want from each population, and creating them 
+	//		as subpops split from their source.
+	// Otherwise the migration event happens from indiv that mated within their 
+	//		source first
+
+	//n_lines = 8;
+	line_names = rep("p", n_lines*2) + asString(10:((n_lines*2)+9) );
+	sources = c(rep(1, n_lines), rep(2, n_lines));
+	
+	for (i in 0:(n_lines*2-1)) {
+	
+	sim.addSubpopSplit(line_names[i], 10, sources[i], 0.5);
+	
+	}
+	
+	
+	// now give each of the 10 individual genomes their own private muations
+	// for now these are homozygous 
+	
+	
+	// For each indiv i in pop1 (0-indexed) add j mutations to each of their
+	// autosomal genomes
+	n_adaptive_var = round(ratio_adaptive_rare * n_var) ;
+	n_rare_var = n_var - n_adaptive_var;
+	
+	// Need to have a vector of lines to add variants to- want the last n*2 subpops to exclude the sources (didn't to 2:length in case we test with more source pops
+	line_temp = sim.subpopulations[(length(sim.subpopulations) - n_lines*2):(length(sim.subpopulations)-1)];
+	
+	for (i in 0:(length(line_temp)-1))
+		for (j in 1:n_rare_var) {
+line_temp[i].individuals.genomes.addNewDrawnMutation(m1,rdunif(1,22500002,119000003));
+		}
+	
+	
+
+}
+
+// we then create the new population that is composed of a certain proportion of individuals from p1 and p2
+
+3 {
+	sim.addSubpop("p3", 1000, 0.5);
+	sim.addSubpop("p4", 1000, 0.5);
+	sim.addSubpop("p5", 1000, 0.5);
+	inbred = sim.subpopulations[5:20]; //fix this!! 
+	p3.setMigrationRates(inbred, 
+								rep( 1/(length(inbred)), length(inbred)));
+	source1 = inbred[0:((length(inbred)/2)-1)];
+	p4.setMigrationRates(source1, 
+								rep( 1/(length(source1)), length(source1)));
+	source2 = inbred[(length(inbred)/2):(length(inbred)-1)];
+	p5.setMigrationRates(source2, 
+								rep( 1/(length(source2)), length(source2)));
+}
+
+
+
+// now we do not need p1 and p2 population anymore and we want p3 population to evolve on it own so we change the migration rate so that parents only came from p3 and delate the two parental populations
+
+4{
+	p3.setMigrationRates(c(p1, p2), c(0.0, 0.0));
+	inbred = sim.subpopulations[5:20]; //fix this!! 
+	inbred.setSubpopulationSize(0);
+	p1.setSubpopulationSize(0);
+	p2.setSubpopulationSize(0);
+
+
+}
+
+
+4:50 early() {
+
+	line = sim.generation + " " + mean(p3.cachedFitness(NULL)) +
+		" " + mean(p4.cachedFitness(NULL)) + 
+		" " + mean(p5.cachedFitness(NULL));
+		
+		file_name = "/Users/jamie/Box/Computing_resources/simulations_introgression_recombination-Simulation_scripts/directional_selection/sim_output/" + getSeed() + "_phenotype.txt";
+		writeFile(file_name, line, append=T);
+	
+}
+
+//end of the simulations 
+
+50 late(){
+
+	sim.simulationFinished();
+
+}
