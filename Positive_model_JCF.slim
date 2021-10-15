@@ -222,10 +222,13 @@ initialize() {
 	line = sim.generation + " " + mean(p3.cachedFitness(NULL)) +
 		" " + mean(p4.cachedFitness(NULL)) + 
 		" " + mean(p5.cachedFitness(NULL));
-	
-	dir = paste("m", n_var, "_r", ratio_adaptive_rare, "_fa", adaptive_freq, sep="");
+
+	 //"results/sim_{n_var}n_{ratio_adaptive_rare}ratio_{adapt_freq}adapt_freq_{n_lines}lines_{n_reps}rep.tsv"	
+	filename = "sim_" + n_var + "n_" + ratio_adaptive_rare + "ratio_" + 
+			adaptive_freq + "adapt_freq_" + n_lines + "lines_" + rep + "rep" +
+			 ".tsv";
 		
-	file_name = dir + "/" + getSeed() + "_fitness.txt";
+	file_name = "results" + "/" + filename;
 	writeFile(file_name, line, append=T);
 	
 }
