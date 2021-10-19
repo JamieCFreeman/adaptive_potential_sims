@@ -13,11 +13,12 @@ initialize() {
 	//Initializing the two mutations types : both positive, co-dominant, with a selection coefficient fowloing an exponential distribution with a mean of 0.001 
 	
 	// select the selection coefficient 
-	
+	// m1 mutations will be added as "adaptive" mutations in each source pop at high frequencies 	
 	initializeMutationType("m1", 0.5, "e", 0.01);
 	m1.mutationStackPolicy = "l";
 	m1.color = "red";
 	
+	// m2 mutations will be added as neutral variants in inbred lines at low freq
 	initializeMutationType("m2", 0.5, "e", 0.01);
 	m2.mutationStackPolicy = "l";
 	m2.color = "green";
@@ -170,7 +171,7 @@ initialize() {
 	
 		for (i in 0:(length(line_temp)-1))
 			for (j in 1:n_rare_var) {
-				line_temp[i].individuals.genomes.addNewDrawnMutation(m1,rdunif(1,22500002,119000003));
+				line_temp[i].individuals.genomes.addNewDrawnMutation(m2,rdunif(1,22500002,119000003));
 			}
 
 		}
@@ -245,11 +246,11 @@ initialize() {
    
    	 if (ratio_adaptive_rare==1) {               
    		split_name = strsplit(filename, "_");
-   		split_name[2] = "0.0ratio";
+   		split_name[2] = "1.0ratio";
    		filename = paste(split_name, sep="_");
    	}
 		
-	file_name = "results" + "/" + filename;
+	file_name = "results/sim_raw/" + filename;
 	writeFile(file_name, line, append=T);
 	
 }
