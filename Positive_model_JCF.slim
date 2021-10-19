@@ -96,42 +96,43 @@ initialize() {
 	Indp2 = p2.individuals;
 	Indp2[Indp2.sex == "M"].genome2.addNewMutation(m3, 0, 11250000);
 	
+	// We only want to execute the following block if n_adaptive_var >0
+	if (n_adaptive_var > 0) {
+	// We are randomly assigning our adaptive variants to the sex chr or
+	//	the rest of the genome proportional to their sizes
 
-	//Sex chr is 20% of genome, give 20%
-	n_sex_var = round((n_adaptive_var/2)*0.20);
-	n_aut_var = n_var - n_sex_var;
+		//Sex chr is 20% of genome, give 20%
+		n_sex_var = round((n_adaptive_var/2)*0.20);
+		n_aut_var = n_var - n_sex_var;
 	
-	// Sex mutations only going to the X chromosome
-	P1_X_chrs = c(Indp1[Indp1.sex == "F"].genomes, Indp1[Indp1.sex == "M"].genome1);
+		// Sex mutations only going to the X chromosome
+		P1_X_chrs = c(Indp1[Indp1.sex == "F"].genomes, Indp1[Indp1.sex == "M"].genome1);
+		P2_X_chrs = c(Indp2[Indp2.sex == "F"].genomes, Indp2[Indp2.sex == "M"].genome1);
 	
-	P2_X_chrs = c(Indp2[Indp2.sex == "F"].genomes, Indp2[Indp2.sex == "M"].genome1);
-	
-	// For every mutant we sample the X chromosomes set so that frequency is
-	//		equal to adaptive_freq
-	for (i in 1:n_sex_var)
-	{
-		P1_X_mut = sample(P1_X_chrs, asInteger(length(P1_X_chrs) * adaptive_freq));
-		P1_X_mut.addNewDrawnMutation(m1, rdunif(1,0,22500000));
-	}
-	for (i in 1:n_sex_var)
-	{
-		P2_X_mut = sample(P2_X_chrs, asInteger(length(P2_X_chrs) * adaptive_freq));
-		P2_X_mut.addNewDrawnMutation(m1, rdunif(1,0,22500000));
-	}
-	
-	
-	
-	// adding a certain number of positively selected mutations in each population
-	for (i in 1:n_aut_var)
-	{
-		Indp1.genomes.addNewDrawnMutation(m1, rdunif(1,22500002,119000003));
-	}
-	for (i in 1:n_aut_var)
-	{
-		Indp2.genomes.addNewDrawnMutation(m1, rdunif(1,22500002,119000003));
-	}
+		// For every mutant we sample the X chromosomes set so that frequency is
+		//		equal to adaptive_freq
+		for (i in 1:n_sex_var)
+		{
+			P1_X_mut = sample(P1_X_chrs, asInteger(length(P1_X_chrs) * adaptive_freq));
+			P1_X_mut.addNewDrawnMutation(m1, rdunif(1,0,22500000));
+		}
+		for (i in 1:n_sex_var)
+		{	
+			P2_X_mut = sample(P2_X_chrs, asInteger(length(P2_X_chrs) * adaptive_freq));
+			P2_X_mut.addNewDrawnMutation(m1, rdunif(1,0,22500000));
+		}
 
+		// The rest of the adaptive vars go to the autosomes	
+		for (i in 1:n_aut_var)
+		{
+			Indp1.genomes.addNewDrawnMutation(m1, rdunif(1,22500002,119000003));
+		}
+		for (i in 1:n_aut_var)
+		{
+			Indp2.genomes.addNewDrawnMutation(m1, rdunif(1,22500002,119000003));
+		}
 
+	}
 }
 
 
@@ -161,15 +162,20 @@ initialize() {
 	n_adaptive_var = round(ratio_adaptive_rare * n_var) ;
 	n_rare_var = n_var - n_adaptive_var;
 	
-	// Need to have a vector of lines to add variants to- want the last n*2 subpops to exclude the sources (didn't to 2:length in case we test with more source pops
-	line_temp = sim.subpopulations[(length(sim.subpopulations) - n_lines*2):(length(sim.subpopulations)-1)];
+	// Only want to execute following block if n_rare_var > 0
+	if (n_rare_var > 0) {
+		// Need to have a vector of lines to add variants to- want the last n*2 subpops to exclude the sources 
+		//	(didn't to 2:length in case we test with more source pops
+		line_temp = sim.subpopulations[(length(sim.subpopulations) - n_lines*2):(length(sim.subpopulations)-1)];
 	
-	for (i in 0:(length(line_temp)-1))
-		for (j in 1:n_rare_var) {
-			line_temp[i].individuals.genomes.addNewDrawnMutation(m1,rdunif(1,22500002,119000003));
+		for (i in 0:(length(line_temp)-1))
+			for (j in 1:n_rare_var) {
+				line_temp[i].individuals.genomes.addNewDrawnMutation(m1,rdunif(1,22500002,119000003));
+			}
+
 		}
 
-}
+	}
 
 // we then create the new population that is composed of a certain proportion of individuals from p1 and p2
 //	as well as our single source populations
@@ -227,6 +233,21 @@ initialize() {
 	filename = "sim_" + n_var + "n_" + ratio_adaptive_rare + "ratio_" + 
 			adaptive_freq + "adapt_freq_" + n_lines + "lines_" + rep + "rep" +
 			 ".tsv";
+	
+	// When pasting 0 or 1, they lose trailing decimal here (eg _0ratio_). B/c I control with Snakemake- it is searching for a 
+	//	file with _0.0ratio_ and can't change input or it goes in as an integer instead of a flat -> error
+	// Write two quick loops to fix name in these cases
+	if (ratio_adaptive_rare==0) {               
+   		split_name = strsplit(filename, "_");
+   		split_name[2] = "0.0ratio";
+   		filename = paste(split_name, sep="_");
+   	}
+   
+   	 if (ratio_adaptive_rare==1) {               
+   		split_name = strsplit(filename, "_");
+   		split_name[2] = "0.0ratio";
+   		filename = paste(split_name, sep="_");
+   	}
 		
 	file_name = "results" + "/" + filename;
 	writeFile(file_name, line, append=T);

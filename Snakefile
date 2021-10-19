@@ -12,8 +12,8 @@ min_version("5.1.2")
 test = False
 
 n_var = [10, 20, 50, 100, 1000]
-ratio_adaptive_rare = [0.01, 0.25, 0.50, 0.75, 0.99]
-adapt_freq = [0.80]
+ratio_adaptive_rare = [0.0, 0.01, 0.25, 0.50, 0.75, 0.99]
+adapt_freq = [0.25, 0.50, 0.80]
 n_lines = 8
 n_reps = np.arange(100)
 
