@@ -14,4 +14,7 @@ Simulation variables:
 - adaptive_freq: the frequency of adaptive mutations in the source populations
 - n_lines: 
 
-"Adaptive" and "neutral" refers to the variants previous role in the source populations.
+"Adaptive" and "neutral" refers to the variants previous role in the source populations
+
+![DAG](https://github.com/JamieCFreeman/3prime-tag-seq/blob/main/README_files/rulegraph.svg?raw=true)
+.
