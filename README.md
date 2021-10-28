@@ -6,6 +6,7 @@ If two populations have diverged from a common ancestor, we imagine that the gen
 
 We start with two populations and give them adaptive variants of a specified number and frequency in the population, and then we split each into multiple subpopulations (specifide in n_lines) to approximate isofemale lines.  The isofemale lines are given some number of neutral variants, and then an equal number (n_lines) of isofemale lines frome each of the two original source populations are combined. Single origin populations are created with 2*n isofemale lines. The fitness of this mixed population, as well as the fitness of the single origin populations are output at each generation.  
 
+We define adaptive potential as the change in fitness over the course the experiment (or the slope of the regression line of fitness~generation).
 
 Simulation variables: 
 - n_var: the toal desired number of variants in all populations
