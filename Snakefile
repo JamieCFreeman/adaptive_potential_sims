@@ -39,7 +39,8 @@ rule all:
 		"logs/current_conda_explicit.txt",
 		expand("results/processed/slope_{n_var}n_{ratio_adaptive_rare}ratio_{adapt_freq}adapt_freq_{n_lines}lines.tsv",
                         n_var=n_var, ratio_adaptive_rare=ratio_adaptive_rare, n_lines=n_lines,
-                        adapt_freq=adapt_freq)
+                        adapt_freq=adapt_freq),
+		"results/slope_merged_wpars.txt"
 
 rule slim:
 # Do simulations
@@ -78,6 +79,20 @@ rule process:
 		"""
 		 Rscript --vanilla scripts/calc_slope.R {input} {output}
 		"""
+
+rule gather:
+# Combine all slope data into 1 table w parameters for analysis
+	input:
+                expand("results/processed/slope_{n_var}n_{ratio_adaptive_rare}ratio_{adapt_freq}adapt_freq_{n_lines}lines.tsv",
+                        n_var=n_var, ratio_adaptive_rare=ratio_adaptive_rare, n_lines=n_lines,
+                        adapt_freq=adapt_freq)
+	output:
+		"results/slope_merged_wpars.txt"
+	shell:
+		"""
+		Rscript --vanilla scripts/Merge_data.R results/processed {output}
+		"""
+
 
 
 rule record_ev:
