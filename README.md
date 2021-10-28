@@ -16,5 +16,5 @@ Simulation variables:
 
 "Adaptive" and "neutral" refers to the variants previous role in the source populations
 
-![DAG](https://github.com/JamieCFreeman/adaptive_potential_sims/blob/main/README_files/rulegraph.png?raw=true)
+![rulegraph](https://github.com/JamieCFreeman/adaptive_potential_sims/blob/main/README_files/rulegraph.png?raw=true)
 .
