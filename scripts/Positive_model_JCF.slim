@@ -181,43 +181,68 @@ initialize() {
 // we then create the new population that is composed of a certain proportion of individuals from p1 and p2
 //	as well as our single source populations
 
-3 {
-	sim.addSubpop("p3", 1000, 0.5);
-	sim.addSubpop("p4", 1000, 0.5);
-	sim.addSubpop("p5", 1000, 0.5);
 
-	inbred = sim.subpopulations[5:20]; //fix this!! hardcodes the n lines & sources
-	source = c(rep("N", 5), rep("p1", n_lines), rep("p2", n_lines));
+3 {
+	nrep_pops = 5;
+	
+	// Initialize names for replicate experimental pops, start at 100 to
+	//   make sure not to conflict with existing
+	pop_names = rep("p", nrep_pops*3) + asString(100:((nrep_pops*3)+99) );
+	for (i in 0:(length(pop_names)-1)) {
+		sim.addSubpop(pop_names[i], 1000, 0.5);
+	}
+
+	
+	// Initialize source pops
+	inbred = sim.subpopulations[sim.subpopulations.id >= 10 & sim.subpopulations.id < 100]; //started lines IDs at 10, and will start new IDs at 100 
+	source = c(rep("N", 2), rep("p1", n_lines), rep("p2", n_lines), rep("N", nrep_pops*3));
+	//source = c(rep("N", 5), rep("p1", n_lines), rep("p2", n_lines));
 	source1 = sim.subpopulations[source=="p1"];
 	source2 = sim.subpopulations[source=="p2"];
 	
 	// p3 is the mixed source pop, mixed N lines from source 1 and N from source 2
+	//  For each of the "mixA" reps, set equal migration from each of the pop set 
 	mixA = c(source1[0:((n_lines/2)-1)], source2[0:((n_lines/2)-1)]);
-	p3.setMigrationRates(mixA, 
-			     rep( 1/(length(mixA)), length(mixA)));
+	mixA_reps =sim.subpopulations[sim.subpopulations.id >= 100 & sim.subpopulations.id < 100 + nrep_pops];
+	for (i in 0:(nrep_pops-1)) {
+		mixA_reps[i].setMigrationRates(mixA,
+			rep( 1/(length(mixA)), length(mixA)));
+	}
 	
 	// p4 is single origin, 2N lines from source 1
 	source1 = inbred[0:((length(inbred)/2)-1)];
-	p4.setMigrationRates(source1, 
-								rep( 1/(length(source1)), length(source1)));
+	source1_reps = sim.subpopulations[sim.subpopulations.id >= 100 + nrep_pops & sim.subpopulations.id < 100 + nrep_pops*2];
+	for (i in 0:(nrep_pops-1)) {
+		source1_reps[i].setMigrationRates(source1,
+			rep( 1/(length(source1)), length(source1)));
+	}
+	
 	// p5 is single origin, 2N lines from source 2							
 	source2 = inbred[(length(inbred)/2):(length(inbred)-1)];
-	p5.setMigrationRates(source2, 
-								rep( 1/(length(source2)), length(source2)));
+	source2_reps = sim.subpopulations[sim.subpopulations.id >= 100 + nrep_pops * 2 ];
+	for (i in 0:(nrep_pops-1)) {
+		source2_reps[i].setMigrationRates(source2,
+			rep( 1/(length(source2)), length(source2)));
+	}
+
 }
 
 
-
-// now we do not need p1 and p2 population anymore and we want p3 population to evolve on it own so we change the migration rate 
-//	so that parents only came from p3 and delate the two parental populations
+// now we do not need p1 and p2 population anymore and we want p3 population to evolve on it own so wedelete the two parental populations
 // Delete the inbred line pops as well
 
 4{
-	p3.setMigrationRates(c(p1, p2), c(0.0, 0.0));
-	inbred = sim.subpopulations[5:20]; //fix this!! 
-	inbred.setSubpopulationSize(0);
+	// Remove parental pops
 	p1.setSubpopulationSize(0);
 	p2.setSubpopulationSize(0);
+	
+	// Remove inbred line pops
+	inbred = sim.subpopulations[sim.subpopulations.id >= 10 & sim.subpopulations.id < 100]; //fix this!! 
+	inbred.setSubpopulationSize(0);
+	
+	// We got rid of all source populations, so don't need to explicity set
+	//		migration rates to exp pops to 0
+	
 
 }
 
@@ -226,9 +251,11 @@ initialize() {
 
 4:50 early() {
 
-	line = sim.generation + " " + mean(p3.cachedFitness(NULL)) +
-		" " + mean(p4.cachedFitness(NULL)) + 
-		" " + mean(p5.cachedFitness(NULL));
+	line = sim.generation + " ";
+
+	for ( i in 0:(length(sim.subpopulations)-1)) {
+		line = line + mean(sim.subpopulations[i].cachedFitness(NULL)) + " ";
+	}
 
 	 //"results/sim_{n_var}n_{ratio_adaptive_rare}ratio_{adapt_freq}adapt_freq_{n_lines}lines_{n_reps}rep.tsv"	
 	filename = "sim_" + n_var + "n_" + ratio_adaptive_rare + "ratio_" + 
