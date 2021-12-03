@@ -21,22 +21,25 @@ file_list = read.table(input_file, header=FALSE, stringsAsFactors = FALSE)
 # Want to see what happens running for 15 gen
 n_gen = 15
 
+# Number of replicates of each exp pop simulated
+n_rep_pops = 5
 
-sim_lm_data = matrix(nrow = nrow(file_list), ncol = 3)
+sim_lm_data = matrix(nrow = nrow(file_list), ncol = 3*n_rep_pops)
 
 for (i in 1:nrow(file_list) ) {
 	data.wide = read.table( file_list[i,1], header=F, sep=" ")
-  	colnames(data.wide) <- c("Generation", "p3", "p4", "p5")
+  	# There is a trailing space at the end of the data, so R adds col NAs
+	data.wide = data.wide[,-ncol(data.wide)]
+	colnames(data.wide) <- c("Generation", paste(rep("p", n_rep_pops*3), 3:(2+(n_rep_pops*3)), sep="") )
     
 	cutoff_point = data.wide[1,"Generation"] + n_gen
 
 	data.wide = data.wide[data.wide[,"Generation"]<= cutoff_point,]
-      
-	 sim_lm_data[i,] = c(
-			     "p3_slope"= coefficients(lm(data.wide$p3~data.wide$Generation))[[2]],
-			     "p4_slope"= coefficients(lm(data.wide$p4~data.wide$Generation))[[2]],
-			     "p5_slope"= coefficients(lm(data.wide$p5~data.wide$Generation))[[2]]
-			     )
+       
+	# Loop over each pop
+	for (j in 1:(ncol(sim_lm_data))) {
+		sim_lm_data[i,j] = coefficients(lm(data.wide[,j+1]~data.wide$Generation))[[2]]
+	 }
 }
 
 write.table(sim_lm_data, file=args[2], sep="\t", quote=FALSE, row.names=FALSE, col.names=FALSE)

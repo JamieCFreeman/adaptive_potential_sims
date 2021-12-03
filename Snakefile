@@ -19,6 +19,7 @@ n_var = [10, 100, 1000]
 ratio_adaptive_rare = [0.0, 0.25, 0.50, 0.75, 1.0]
 adapt_freq = [0.25, 0.50, 0.75]
 n_lines = 8
+#n_reps = np.arange(10)
 n_reps = np.arange(1000)
 
 if test == True:
